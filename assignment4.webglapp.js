@@ -55,10 +55,16 @@ class RenderPasses extends WebGlApp
     renderpass_pixel_filter( gl, canvas_width, canvas_height )
     {
         // TODO First rendering pass
-        // ...
+        this.fbo = this.fbo_pixel_filter;
+        this.fbo.resize(gl, canvas_width, canvas_height);
+        this.fbo.bindFramebuffer(gl);
+        this.renderpass_normal(gl, canvas_width, canvas_height, ['light']);
+        this.fbo.unbindFramebuffer(gl);
 
         // TODO Second rendering pass
-        // ...
+        let color_texture = this.fbo.getColorTexture();
+        let depth_texture = this.fbo.getDepthTexture();
+        this.quad.render(gl, this.filter_mode, color_texture, depth_texture);
 
         // render only lights
         this.scene.render( gl, [ 'model' ] )
@@ -70,33 +76,47 @@ class RenderPasses extends WebGlApp
         let scale = mat4.getScaling(vec3.create(), this.scene.scenegraph.transformation)
 
         // TODO compute camera matrices from 
-        let shadow_v
-        let shadow_p
+        let shadow_v = mat4.create();
+        let shadow_p = mat4.create();
 
         // TODO first rendering pass
         {
             // TODO add missing steps ...
-
+            this.fbo = this.fbo_directional;
+            fbo.bindFramebuffer(gl);
             let shadow_camera = current_light.getCamera( scale )
             shadow_v = shadow_camera.getViewMatrix()
             shadow_p = shadow_camera.getProjectionMatrix()
 
+            let view_m = this.camera.getViewMatrix()
+            let proj_m = this.camera.getProjectionMatrix()
+            
             let shader = this.shaders[this.active_shader]
+            
 
             {
                 // TODO configure shader parameters
+                shader.use();
+                shader.setUniform4x4f('u_v', shadow_v);
+                shader.setUniform4x4f('u_p', shadow_p);
+                shader.unuse(); // unuse after as needs shader to reuse
             }
 
             this.renderpass_normal(gl, fbo.width, fbo.height, [ 'light' ])
 
             {
                 // TODO restore shader parameters
+                shader.use();
+                shader.setUniform4x4f('u_v', view_m);
+                shader.setUniform4x4f('u_p', proj_m);
+                shader.unuse();
             }
-        
             // TODO add missing steps ...
+            
+            this.fbo.unbindFramebuffer(gl);
         }
-
-        return // TODO compute the output projection matrix
+        let return_matrix = mat4.multiply(mat4.create(), shadow_p, shadow_v);
+        return return_matrix;// TODO compute the output projection matrix
     }
 
     renderpass_shadowmap( gl, canvas_width, canvas_height )
@@ -116,19 +136,32 @@ class RenderPasses extends WebGlApp
         // TODO final rendering pass
         {
             // TODO add missing steps ...  
+            this.setViewport(gl, canvas_width, canvas_height);
+            this.clearCanvas(gl);
 
             this.scene.setShader(gl, this.shadow_shader)
             {
                 let shader = this.shadow_shader
                 shader.use()
 
-                // TODO First, restore camera position
+                // // TODO First, restore camera position
+                shader.setUniform4x4f('u_v', this.camera.getViewMatrix());
+                shader.setUniform4x4f('u_p', this.camera.getProjectionMatrix());
 
-                // TODO Second, pass-in light-camera matrices
-
-                // TODO Activate the depth texture for the directional light
-
-                // TODO Activate the depth texture for the point light
+                // // TODO Second, pass-in light-camera matrices
+                shader.setUniform4x4f('u_shadow_pv_directional', u_shadow_pv_directional);
+                shader.setUniform4x4f('u_shadow_pv_point', u_shadow_pv_point);
+                // // TODO Activate the depth texture for the directional light
+                let depth_directional = this.fbo_directional.getDepthTexture();
+                shader.setUniform1i('u_shadow_tex_directional', 3);
+                gl.activeTexture(gl.TEXTURE3);
+                gl.bindTexture(gl.TEXTURE_2D, depth_directional);
+                
+                // // TODO Activate the depth texture for the point light
+                let depth_point = this.fbo_point.getDepthTexture();
+                shader.setUniform1i('u_shadow_tex_point', 4);
+                gl.activeTexture(gl.TEXTURE4);
+                gl.bindTexture(gl.TEXTURE_2D, depth_point);
 
                 shader.unuse()
             }

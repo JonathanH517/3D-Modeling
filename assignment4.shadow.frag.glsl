@@ -110,17 +110,30 @@ vec3 shadePointLight(Material material, PointLight light, vec3 normal, vec3 eye,
     return result;
 }
 
+//cited from the first link provided
+vec2 poissonDisk[4] = vec2[](
+    vec2( -0.94201624, -0.39906216 ),
+    vec2( 0.94558609, -0.76890725 ),
+    vec2( -0.094184101, -0.92938870 ),
+    vec2( 0.34495938, 0.29387760 )
+);
+// modified the codes from the first link provided for EC
 float computeVisibility(vec4 shadow_coord, sampler2D shadow_tex)
 {
     const float bias = 0.0005; // constant bias
     // TODO compute visibility
-    bool visible = 0;
-    if (visible) {
-        return 0.1;
+    //normalize the coords first
+    vec3 shadow_coord_Normalized = shadow_coord.xyz / shadow_coord.w;
+    vec2 shadow_coord_Normalized_xy = shadow_coord_Normalized.xy;
+    
+    float visibility = 1.0;
+    for (int i = 0; i < 4; i++){
+    //if depth(left size) is smaller, something blocking the light(creating shadow)
+        if (texture(shadow_tex, shadow_coord_Normalized_xy + poissonDisk[i]/700.0).x < shadow_coord_Normalized.z - bias){
+            visibility -= 0.24; // tried another number to make it work better
+        }
     }
-    else {
-        return 1.0;
-    }
+    return visibility;
 }
 
 void main() {

@@ -65,14 +65,14 @@ void main() {
 	// Identity Filter
 	if (filter_mode == 0)
 	{
-		vec4 inputColor; // TODO access the color component of your FBO
+		vec4 inputColor = texture(color_texture, o_texture_coord); // TODO access the color component of your FBO
 		o_fragColor = mix(inputColor, white, 0.5);
 	}
 
 	// Depth Filter
 	else if (filter_mode == 1)
     {
-		float depth; // TODO access the depth component of your FBO
+		float depth = texture(depth_texture, o_texture_coord).x; // TODO access the depth component of your FBO
 		o_fragColor = vec4(vec3(linearize_depth(depth)), 1);
 	}
 
@@ -80,12 +80,13 @@ void main() {
 	else if (filter_mode == 2)
 	{
 		vec4 edgeColor = yellow;
-		vec4 inputColor; // TODO access the color component of your FBO
-		float g; // TODO correctly call the sobel filter on the color component of your FBO
+		vec4 inputColor = texture(color_texture, o_texture_coord); // TODO access the color component of your FBO
+		float g = sobel(color_texture, o_texture_coord); // TODO correctly call the sobel filter on the color component of your FBO
     	o_fragColor = mix(inputColor, edgeColor, g);
 
 		// TODO correct fragment depth values
-		// ...
+		float depth = texture(depth_texture, o_texture_coord).x; // TODO access the depth component of your FBO
+		gl_FragDepth = depth; // set it to gl s.t. the scene annotation is reserved
 	}
 
 	else

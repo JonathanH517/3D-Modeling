@@ -32,8 +32,8 @@ void main() {
     o_vertex_normal_world = vertex_normal_world.xyz;
 
     // TODO compute shadow coordinates
-    // o_shadow_coord_directional = 
-    // o_shadow_coord_point =
+    o_shadow_coord_directional = bias_matrix * u_shadow_pv_directional * vertex_position_world;
+    o_shadow_coord_point =  bias_matrix * u_shadow_pv_point * vertex_position_world;
 
     gl_Position = u_p * u_v * vertex_position_world;
 
